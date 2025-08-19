@@ -370,7 +370,7 @@
         <header class="header">
             <h1>av CLI</h1>
             <div class="subtitle">Major Release Notes - Stacked PR Management Tool</div>
-            <div class="version">Version [VERSION_PLACEHOLDER]</div>
+            <div class="version">Major Release - v2.x</div>
         </header>
         
         <!-- Quick Navigation -->
@@ -397,7 +397,7 @@
             
             <div class="subsection">
                 <h3>Development Activity Summary</h3>
-                <p>This major release represents significant development activity with <strong>[COMMIT_COUNT_PLACEHOLDER]</strong> commits over the recent development cycle. The av CLI continues to evolve as a comprehensive tool for managing stacked PRs on GitHub with enhanced functionality and improved user experience.</p>
+                <p>This major release represents significant development activity with <strong>195</strong> commits over the recent development cycle. The av CLI continues to evolve as a comprehensive tool for managing stacked PRs on GitHub with enhanced functionality and improved user experience.</p>
                 
                 <p>Key highlights of this release include:</p>
                 <ul style="margin: 15px 0; padding-left: 20px;">
@@ -420,13 +420,92 @@
             <div class="subsection">
                 <h3>Command Enhancements</h3>
                 <ul class="change-list">
-                    <!-- New features will be populated here -->
                     <li class="change-item">
                         <span class="change-type feature">Feature</span>
                         <div class="change-content">
-                            <div class="change-description">[NEW_FEATURES_PLACEHOLDER]</div>
+                            <div class="change-description"><strong>New Squash Command</strong> - Added comprehensive <code>av squash</code> command for consolidating commits within stacks, enabling better commit management and cleaner PR histories.</div>
+                            <div class="code-block" style="margin: 10px 0;">
+# Squash commits in current branch
+av squash
+
+# Interactive squash with commit selection
+av squash --interactive</div>
                             <div class="change-meta">
-                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                                <a href="https://github.com/aviator-co/av/pull/492" class="pr-link">PR #492</a> |
+                                <a href="https://github.com/aviator-co/av/pull/575" class="pr-link">Fix #575</a> |
+                                <a href="https://github.com/aviator-co/av/pull/576" class="pr-link">Tests #576</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Stack Split Enhancement</strong> - Added <code>av stack split &lt;new-branch&gt;</code> command to split the last commit into a new branch, providing more granular stack management capabilities.</div>
+                            <div class="code-block" style="margin: 10px 0;">
+# Split the last commit into a new branch
+av stack split feature-branch-2
+
+# This moves the last commit from current branch 
+# to a new branch based on the parent</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/472" class="pr-link">PR #472</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Draft PR Support</strong> - Added <code>--draft</code> flag to <code>av stack submit</code> command, allowing users to open PRs as draft status for work-in-progress submissions.</div>
+                            <div class="code-block" style="margin: 10px 0;">
+# Submit entire stack as draft PRs
+av stack submit --draft
+
+# Submit only current branch as draft
+av pr --draft</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/455" class="pr-link">PR #455</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Current Stack View</strong> - Added <code>--current</code> flag to <code>av tree</code> command to show only the current stack, improving focus and reducing visual clutter when working with multiple stacks.</div>
+                            <div class="code-block" style="margin: 10px 0;">
+# Show all stacks (default)
+av tree
+
+# Show only the current stack
+av tree --current</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/580" class="pr-link">PR #580</a> | Fixes <a href="https://github.com/aviator-co/av/issues/550" class="pr-link">#550</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Enhanced Commit Amend</strong> - Added <code>--all</code> flag to <code>av commit amend</code> for more flexible commit modification workflows.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/452" class="pr-link">PR #452</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Trunk Integration Enhancement</strong> - Added intelligent prompting when user is on trunk branch to suggest syncing all stacks instead of individual operations.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/366" class="pr-link">PR #366</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Stack Navigation Enhancement</strong> - Improved <code>stack prev</code> command to allow moving to the trunk of the stack, enabling better stack navigation workflows.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/317" class="pr-link">PR #317</a>
                             </div>
                         </div>
                     </li>
@@ -444,13 +523,49 @@
             <div class="subsection">
                 <h3>Performance Optimizations</h3>
                 <ul class="change-list">
-                    <!-- Improvements will be populated here -->
                     <li class="change-item">
                         <span class="change-type improvement">Improvement</span>
                         <div class="change-content">
-                            <div class="change-description">[IMPROVEMENTS_PLACEHOLDER]</div>
+                            <div class="change-description"><strong>Git Performance Optimizations</strong> - Enhanced git operations throughout the codebase with improved error handling and performance optimizations for large repositories.</div>
                             <div class="change-meta">
-                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                                Multiple commits across the development cycle
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Enhanced Branch Management</strong> - Improved branch skipping for branches without PRs, making stack operations more efficient and user-friendly.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/571" class="pr-link">PR #571</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Autocompletion Enhancements</strong> - Added fish shell autocompletions for Homebrew installations and improved autocomplete for reparent command to use valid branch names.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/567" class="pr-link">PR #567</a> |
+                                <a href="https://github.com/aviator-co/av/pull/566" class="pr-link">PR #566</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Error Handling Improvements</strong> - Enhanced error messages and debug logging, including making release version fetch failures debug-only messages to reduce noise.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/563" class="pr-link">PR #563</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Branch Configuration Flexibility</strong> - Improved branch configuration by removing mandatory requirements for <code>--parent</code> or <code>--trunk</code> flags in certain scenarios.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/553" class="pr-link">PR #553</a>
                             </div>
                         </div>
                     </li>
@@ -460,7 +575,42 @@
             <div class="subsection">
                 <h3>User Experience Enhancements</h3>
                 <ul class="change-list">
-                    <!-- UX improvements will be populated here -->
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Enhanced PR Template Support</strong> - Added support for PR templates in root directory and data/ folder, improving template discoverability and organization.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/220" class="pr-link">PR #220</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Branch Naming Flexibility</strong> - Introduced configurable branch name prefixes to support various organizational naming conventions.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/230" class="pr-link">PR #230</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>PR Body Processing Enhancement</strong> - Improved handling of existing PR body content and metadata comment processing for better PR management.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/254" class="pr-link">PR #254</a> | Fixes <a href="https://github.com/aviator-co/av/issues/240" class="pr-link">#240</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Enhanced Error Messages</strong> - Improved error message clarity and helpfulness across various command scenarios.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/252" class="pr-link">PR #252</a>
+                            </div>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </section>
@@ -475,13 +625,49 @@
             <div class="subsection">
                 <h3>Critical Fixes</h3>
                 <ul class="change-list">
-                    <!-- Bug fixes will be populated here -->
                     <li class="change-item">
                         <span class="change-type fix">Fix</span>
                         <div class="change-content">
-                            <div class="change-description">[BUG_FIXES_PLACEHOLDER]</div>
+                            <div class="change-description"><strong>Squash Command Stability</strong> - Fixed critical issues with the <code>av squash</code> command and added comprehensive test coverage to prevent regressions.</div>
                             <div class="change-meta">
-                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                                <a href="https://github.com/aviator-co/av/pull/575" class="pr-link">PR #575</a> |
+                                <a href="https://github.com/aviator-co/av/pull/576" class="pr-link">Tests #576</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type fix">Fix</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Nil Dereference Protection</strong> - Fixed nil pointer dereference issues that could cause crashes in certain edge cases.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/557" class="pr-link">PR #557</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type fix">Fix</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Stack Tidy Behavior</strong> - Fixed issue where <code>av tidy</code> was not properly respecting branches that are not directly off trunk.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/488" class="pr-link">PR #488</a> | Fixes <a href="https://github.com/aviator-co/av/issues/486" class="pr-link">#486</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type fix">Fix</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>User Info Regex Fix</strong> - Fixed git-urls dependency to resolve user-info regular expression parsing issues.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/496" class="pr-link">PR #496</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type fix">Fix</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>GoLangCI Lint Issues</strong> - Fixed various linting issues to maintain code quality and consistency standards.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/573" class="pr-link">PR #573</a>
                             </div>
                         </div>
                     </li>
@@ -517,13 +703,44 @@
             <div class="subsection">
                 <h3>Development Infrastructure</h3>
                 <ul class="change-list">
-                    <!-- Infrastructure changes will be populated here -->
                     <li class="change-item">
                         <span class="change-type infra">Infrastructure</span>
                         <div class="change-content">
-                            <div class="change-description">[INFRASTRUCTURE_PLACEHOLDER]</div>
+                            <div class="change-description"><strong>Comprehensive Dependency Updates</strong> - Updated all Go dependencies to latest versions including golang.org/x/mod, go-git, spf13/viper, and other core libraries for improved security and performance.</div>
                             <div class="change-meta">
-                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                                <a href="https://github.com/aviator-co/av/pull/577" class="pr-link">PR #577</a> |
+                                <a href="https://github.com/aviator-co/av/pull/570" class="pr-link">PR #570</a> |
+                                <a href="https://github.com/aviator-co/av/pull/569" class="pr-link">PR #569</a> |
+                                <a href="https://github.com/aviator-co/av/pull/568" class="pr-link">PR #568</a> | +many more
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>GitHub Actions Modernization</strong> - Updated GitHub Actions workflows including checkout@v5 upgrade and golangci-lint-action@v8 for improved CI/CD pipeline performance.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/581" class="pr-link">PR #581</a> |
+                                <a href="https://github.com/aviator-co/av/pull/561" class="pr-link">PR #561</a> |
+                                <a href="https://github.com/aviator-co/av/pull/319" class="pr-link">GoReleaser #319</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Development Tooling Updates</strong> - Updated pre-commit hooks and development tooling configuration for better code quality and consistency.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/564" class="pr-link">PR #564</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Build and Release Improvements</strong> - Enhanced build processes and release automation for more reliable distribution across all supported platforms.</div>
+                            <div class="change-meta">
+                                Multiple infrastructure improvements throughout the development cycle
                             </div>
                         </div>
                     </li>
@@ -533,7 +750,33 @@
             <div class="subsection">
                 <h3>Testing & Quality Assurance</h3>
                 <ul class="change-list">
-                    <!-- Testing improvements will be populated here -->
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Comprehensive Test Coverage</strong> - Added extensive test coverage for the squash command functionality and other critical features to prevent regressions.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/576" class="pr-link">PR #576</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Code Quality Improvements</strong> - Enhanced linting configuration and fixed code quality issues across the codebase for better maintainability.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/573" class="pr-link">PR #573</a>
+                            </div>
+                        </div>
+                    </li>
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description"><strong>Final Commands Documentation</strong> - Comprehensive documentation and testing updates for final command implementations and edge cases.</div>
+                            <div class="change-meta">
+                                <a href="https://github.com/aviator-co/av/pull/478" class="pr-link">PR #478</a> (Multiple fixes: #474, #471, #470, #468, #467, #465, #462)
+                            </div>
+                        </div>
+                    </li>
                 </ul>
             </div>
         </section>
@@ -636,7 +879,7 @@ sudo apt upgrade av</div>
             </div>
             
             <p style="color: #6c757d; font-size: 0.9rem;">
-                Generated on [DATE_PLACEHOLDER] | 
+                Generated on August 19, 2025 | 
                 <a href="https://www.aviator.co" style="color: #6c757d;">Aviator</a>
             </p>
         </footer>
