@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>av CLI - Major Release Notes</title>
+    
+    <!-- Email client compatibility -->
+    <meta name="format-detection" content="telephone=no">
+    <meta name="format-detection" content="date=no">
+    <meta name="format-detection" content="address=no">
+    <meta name="format-detection" content="email=no">
+    
+    <style type="text/css">
+        /* Reset styles for email clients */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        /* Email client compatibility */
+        table { border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
+        img { -ms-interpolation-mode: bicubic; border: 0; outline: none; text-decoration: none; }
+        
+        /* Base styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        /* Container for email compatibility */
+        .email-container {
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            max-width: 100%;
+        }
+        
+        /* Header styles */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            font-size: 1.2rem;
+            color: #6c757d;
+            font-weight: 400;
+        }
+        
+        .header .version {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+        
+        /* Navigation styles */
+        .nav-section {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-section h2 {
+            font-size: 1.2rem;
+            color: #495057;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .nav-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: #495057;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .nav-links a:hover {
+            color: #007bff;
+        }
+        
+        /* Content sections */
+        .content-section {
+            margin-bottom: 40px;
+        }
+        
+        .section-header {
+            background: linear-gradient(90deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px 20px;
+            margin: 30px -20px 20px -20px;
+            border-left: 4px solid #007bff;
+        }
+        
+        .section-header h2 {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin: 0;
+            font-weight: 600;
+        }
+        
+        .section-header .section-subtitle {
+            font-size: 1rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+        
+        /* Subsection styles */
+        .subsection {
+            margin: 25px 0;
+            padding: 20px;
+            background-color: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+        }
+        
+        .subsection h3 {
+            font-size: 1.4rem;
+            color: #495057;
+            margin-bottom: 15px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+        }
+        
+        .subsection h3::before {
+            content: "▶";
+            color: #007bff;
+            margin-right: 10px;
+            font-size: 0.8rem;
+        }
+        
+        /* Change list styles */
+        .change-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .change-item {
+            padding: 12px 0;
+            border-bottom: 1px solid #f1f3f4;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .change-item:last-child {
+            border-bottom: none;
+        }
+        
+        .change-type {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-right: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .change-type.feature {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .change-type.improvement {
+            background-color: #d1ecf1;
+            color: #0c5460;
+        }
+        
+        .change-type.fix {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .change-type.breaking {
+            background-color: #f5c6cb;
+            color: #856404;
+        }
+        
+        .change-type.infra {
+            background-color: #e2e3e5;
+            color: #383d41;
+        }
+        
+        .change-content {
+            flex: 1;
+        }
+        
+        .change-description {
+            font-size: 1rem;
+            line-height: 1.5;
+            color: #495057;
+            margin-bottom: 5px;
+        }
+        
+        .change-meta {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        
+        .pr-link {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .pr-link:hover {
+            text-decoration: underline;
+        }
+        
+        /* Code block styles */
+        .code-block {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.875rem;
+            line-height: 1.45;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        
+        .inline-code {
+            background-color: #f1f3f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 0.875rem;
+            color: #d73a49;
+        }
+        
+        /* Installation section styles */
+        .install-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .install-section h3 {
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .install-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .install-method {
+            background-color: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .install-method h4 {
+            color: white;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .install-method .code-block {
+            background-color: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #f8f9fa;
+        }
+        
+        /* Responsive design */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-links {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .section-header {
+                margin-left: -20px;
+                margin-right: -20px;
+                padding: 15px;
+            }
+            
+            .install-methods {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Email client specific fixes */
+        @media screen and (max-width: 600px) {
+            .nav-links {
+                flex-direction: column !important;
+            }
+        }
+        
+        /* Outlook specific fixes */
+        <!--[if mso]>
+        <style type="text/css">
+            .email-container {
+                width: 800px !important;
+            }
+            .nav-links {
+                display: block !important;
+            }
+            .nav-links li {
+                display: inline-block !important;
+                margin: 5px !important;
+            }
+            .install-methods {
+                display: block !important;
+            }
+            .install-method {
+                width: 48% !important;
+                display: inline-block !important;
+                vertical-align: top !important;
+            }
+        </style>
+        <![endif]-->
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header Section -->
+        <header class="header">
+            <h1>av CLI</h1>
+            <div class="subtitle">Major Release Notes - Stacked PR Management Tool</div>
+            <div class="version">Version [VERSION_PLACEHOLDER]</div>
+        </header>
+        
+        <!-- Quick Navigation -->
+        <nav class="nav-section">
+            <h2>Quick Navigation</h2>
+            <ul class="nav-links">
+                <li><a href="#overview">Release Overview</a></li>
+                <li><a href="#new-features">New Features</a></li>
+                <li><a href="#improvements">Improvements</a></li>
+                <li><a href="#bug-fixes">Bug Fixes</a></li>
+                <li><a href="#breaking-changes">Breaking Changes</a></li>
+                <li><a href="#infrastructure">Infrastructure</a></li>
+                <li><a href="#installation">Installation Guide</a></li>
+                <li><a href="#upgrade">Upgrade Instructions</a></li>
+            </ul>
+        </nav>
+        
+        <!-- Release Overview Section -->
+        <section id="overview" class="content-section">
+            <div class="section-header">
+                <h2>Release Overview</h2>
+                <div class="section-subtitle">Summary of major changes and improvements</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Development Activity Summary</h3>
+                <p>This major release represents significant development activity with <strong>[COMMIT_COUNT_PLACEHOLDER]</strong> commits over the recent development cycle. The av CLI continues to evolve as a comprehensive tool for managing stacked PRs on GitHub with enhanced functionality and improved user experience.</p>
+                
+                <p>Key highlights of this release include:</p>
+                <ul style="margin: 15px 0; padding-left: 20px;">
+                    <li>New command capabilities for advanced workflow management</li>
+                    <li>Enhanced Git performance optimizations</li>
+                    <li>Improved integration with GitHub workflows</li>
+                    <li>Comprehensive development infrastructure upgrades</li>
+                    <li>No breaking changes - all modifications are additive enhancements</li>
+                </ul>
+            </div>
+        </section>
+        
+        <!-- New Features Section -->
+        <section id="new-features" class="content-section">
+            <div class="section-header">
+                <h2>New Features</h2>
+                <div class="section-subtitle">Major new functionality added in this release</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Command Enhancements</h3>
+                <ul class="change-list">
+                    <!-- New features will be populated here -->
+                    <li class="change-item">
+                        <span class="change-type feature">Feature</span>
+                        <div class="change-content">
+                            <div class="change-description">[NEW_FEATURES_PLACEHOLDER]</div>
+                            <div class="change-meta">
+                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+        
+        <!-- Improvements Section -->
+        <section id="improvements" class="content-section">
+            <div class="section-header">
+                <h2>Improvements</h2>
+                <div class="section-subtitle">Performance enhancements and workflow optimizations</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Performance Optimizations</h3>
+                <ul class="change-list">
+                    <!-- Improvements will be populated here -->
+                    <li class="change-item">
+                        <span class="change-type improvement">Improvement</span>
+                        <div class="change-content">
+                            <div class="change-description">[IMPROVEMENTS_PLACEHOLDER]</div>
+                            <div class="change-meta">
+                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3>User Experience Enhancements</h3>
+                <ul class="change-list">
+                    <!-- UX improvements will be populated here -->
+                </ul>
+            </div>
+        </section>
+        
+        <!-- Bug Fixes Section -->
+        <section id="bug-fixes" class="content-section">
+            <div class="section-header">
+                <h2>Bug Fixes</h2>
+                <div class="section-subtitle">Resolved issues and stability improvements</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Critical Fixes</h3>
+                <ul class="change-list">
+                    <!-- Bug fixes will be populated here -->
+                    <li class="change-item">
+                        <span class="change-type fix">Fix</span>
+                        <div class="change-content">
+                            <div class="change-description">[BUG_FIXES_PLACEHOLDER]</div>
+                            <div class="change-meta">
+                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </section>
+        
+        <!-- Breaking Changes Section -->
+        <section id="breaking-changes" class="content-section">
+            <div class="section-header">
+                <h2>Breaking Changes</h2>
+                <div class="section-subtitle">Changes that may require user action</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>No Breaking Changes</h3>
+                <p>This release contains <strong>no breaking changes</strong>. All modifications are additive enhancements that maintain backward compatibility with existing workflows and configurations.</p>
+                
+                <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px; padding: 15px; margin: 15px 0;">
+                    <strong style="color: #155724;">✓ Backward Compatibility Maintained</strong><br>
+                    <span style="color: #155724;">All existing commands, flags, and configurations continue to work as expected.</span>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Infrastructure Section -->
+        <section id="infrastructure" class="content-section">
+            <div class="section-header">
+                <h2>Infrastructure & Development</h2>
+                <div class="section-subtitle">Internal improvements and development infrastructure</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Development Infrastructure</h3>
+                <ul class="change-list">
+                    <!-- Infrastructure changes will be populated here -->
+                    <li class="change-item">
+                        <span class="change-type infra">Infrastructure</span>
+                        <div class="change-content">
+                            <div class="change-description">[INFRASTRUCTURE_PLACEHOLDER]</div>
+                            <div class="change-meta">
+                                <a href="#" class="pr-link">[PR_LINKS_PLACEHOLDER]</a>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="subsection">
+                <h3>Testing & Quality Assurance</h3>
+                <ul class="change-list">
+                    <!-- Testing improvements will be populated here -->
+                </ul>
+            </div>
+        </section>
+        
+        <!-- Installation Section -->
+        <section id="installation" class="install-section">
+            <h3>Installation Guide</h3>
+            <p>av CLI is available for macOS and Linux. For GitHub integration, install both av and GitHub CLI.</p>
+            
+            <div class="install-methods">
+                <div class="install-method">
+                    <h4>macOS (Homebrew)</h4>
+                    <div class="code-block">brew install gh aviator-co/tap/av</div>
+                </div>
+                
+                <div class="install-method">
+                    <h4>Arch Linux (AUR)</h4>
+                    <div class="code-block">yay av-cli</div>
+                </div>
+                
+                <div class="install-method">
+                    <h4>Debian/Ubuntu</h4>
+                    <div class="code-block">echo "deb [trusted=yes] https://apt.fury.io/aviator/ /" | sudo tee /etc/apt/sources.list.d/fury.list
+sudo apt update && sudo apt install av</div>
+                </div>
+                
+                <div class="install-method">
+                    <h4>RPM-based Systems</h4>
+                    <div class="code-block">sudo yum install av</div>
+                    <p style="font-size: 0.9rem; margin-top: 10px; color: rgba(255,255,255,0.8);">
+                        Configure repository: <code style="background: rgba(0,0,0,0.3); padding: 2px 4px; border-radius: 2px;">/etc/yum.repos.d/fury.repo</code>
+                    </p>
+                </div>
+                
+                <div class="install-method">
+                    <h4>Binary Download</h4>
+                    <p>Download from <a href="https://github.com/aviator-co/av/releases" style="color: #87ceeb;">releases page</a></p>
+                    <div class="code-block">chmod +x av && sudo mv av /usr/local/bin/</div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Upgrade Section -->
+        <section id="upgrade" class="content-section">
+            <div class="section-header">
+                <h2>Upgrade Instructions</h2>
+                <div class="section-subtitle">How to upgrade from previous versions</div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Upgrade Process</h3>
+                <p>Upgrading av CLI is straightforward and does not require any configuration changes.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin: 20px 0;">
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border: 1px solid #e9ecef;">
+                        <h4 style="color: #495057; margin-bottom: 10px;">macOS (Homebrew)</h4>
+                        <div class="code-block">brew update
+brew upgrade av</div>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border: 1px solid #e9ecef;">
+                        <h4 style="color: #495057; margin-bottom: 10px;">Debian/Ubuntu</h4>
+                        <div class="code-block">sudo apt update
+sudo apt upgrade av</div>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; border: 1px solid #e9ecef;">
+                        <h4 style="color: #495057; margin-bottom: 10px;">RPM-based Systems</h4>
+                        <div class="code-block">sudo yum update av</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="subsection">
+                <h3>Post-Upgrade Verification</h3>
+                <p>After upgrading, verify the installation:</p>
+                <div class="code-block">av --version</div>
+                
+                <p>Test basic functionality:</p>
+                <div class="code-block">av tree</div>
+                
+                <div style="background-color: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; padding: 15px; margin: 15px 0;">
+                    <strong style="color: #0c5460;">💡 No Migration Required</strong><br>
+                    <span style="color: #0c5460;">This upgrade maintains full compatibility with existing repositories and configurations.</span>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Footer -->
+        <footer style="margin-top: 50px; padding: 30px 0; border-top: 2px solid #e9ecef; text-align: center;">
+            <p style="color: #6c757d; margin-bottom: 15px;">
+                <strong>av CLI</strong> - Command-line tool for managing Stacked PRs on GitHub
+            </p>
+            
+            <div style="margin: 20px 0;">
+                <a href="https://docs.aviator.co/aviator-cli" style="color: #007bff; text-decoration: none; margin: 0 15px;">Documentation</a>
+                <a href="https://github.com/aviator-co/av" style="color: #007bff; text-decoration: none; margin: 0 15px;">GitHub Repository</a>
+                <a href="https://github.com/aviator-co/av/releases" style="color: #007bff; text-decoration: none; margin: 0 15px;">All Releases</a>
+                <a href="https://discord.gg/NFsYWNzXcH" style="color: #007bff; text-decoration: none; margin: 0 15px;">Discord Community</a>
+            </div>
+            
+            <p style="color: #6c757d; font-size: 0.9rem;">
+                Generated on [DATE_PLACEHOLDER] | 
+                <a href="https://www.aviator.co" style="color: #6c757d;">Aviator</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
