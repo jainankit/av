@@ -15,7 +15,7 @@ import (
 
 type Client struct {
 	httpClient *http.Client
-	gl         *githubv4.Client // Using githubv4 client for GraphQL, as it works with any GraphQL endpoint
+	gl         *githubv4.Client
 }
 
 // NewClient creates a new GitLab client.
@@ -28,16 +28,14 @@ func NewClient(ctx context.Context, token string) (*Client, error) {
 		&oauth2.Token{AccessToken: token},
 	)
 	httpClient := oauth2.NewClient(ctx, src)
-	
 	var gl *githubv4.Client
-	baseURL := config.Av.GitLab.BaseURL
-	if baseURL == "" {
-		// Default to GitLab.com
-		baseURL = "https://gitlab.com"
+	if config.Av.GitLab.BaseURL == "" {
+		// Default to GitLab.com GraphQL API endpoint
+		gl = githubv4.NewEnterpriseClient("https://gitlab.com/api/graphql", httpClient)
+	} else {
+		// Self-hosted GitLab instance
+		gl = githubv4.NewEnterpriseClient(config.Av.GitLab.BaseURL+"/api/graphql", httpClient)
 	}
-	// GitLab GraphQL API endpoint is at /api/graphql
-	gl = githubv4.NewEnterpriseClient(baseURL+"/api/graphql", httpClient)
-	
 	return &Client{httpClient, gl}, nil
 }
 
