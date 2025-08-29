@@ -18,6 +18,7 @@ import (
 	"github.com/aviator-co/av/internal/gh"
 	"github.com/aviator-co/av/internal/git"
 	"github.com/aviator-co/av/internal/meta"
+	"github.com/aviator-co/av/internal/provider"
 	"github.com/aviator-co/av/internal/utils/browser"
 	"github.com/aviator-co/av/internal/utils/colors"
 	"github.com/aviator-co/av/internal/utils/sanitize"
@@ -55,8 +56,8 @@ type CreatePullRequestResult struct {
 	Created bool
 	// The (updated) branch metadata.
 	Branch meta.Branch
-	// The pull request object that was returned from GitHub
-	Pull *gh.PullRequest
+	// The merge request object that was returned from the provider
+	MR *provider.MergeRequest
 }
 
 // getPRMetadata constructs the PRMetadata for the current state of the branch.
@@ -87,7 +88,7 @@ func getPRMetadata(
 }
 
 type errPullRequestClosed struct {
-	*gh.PullRequest
+	*provider.MergeRequest
 }
 
 func (e errPullRequestClosed) Error() string {
@@ -98,48 +99,55 @@ func (e errPullRequestClosed) Error() string {
 // any exist and are open.
 func getExistingOpenPR(
 	ctx context.Context,
-	client *gh.Client,
+	providerClient provider.Provider,
 	repoMeta meta.Repository,
 	branchMeta meta.Branch,
 	baseRefName string,
-) (*gh.PullRequest, error) {
+) (*provider.MergeRequest, error) {
 	if branchMeta.PullRequest != nil {
 		logrus.WithField("pr", branchMeta.PullRequest.Number).
-			Debug("querying data for existing PR from GitHub")
-		pr, err := client.PullRequest(ctx, branchMeta.PullRequest.ID)
+			Debug("querying data for existing PR from provider")
+		page, err := providerClient.GetMergeRequests(ctx, provider.GetMRsInput{
+			ProjectID: repoMeta.ID,
+			States:    []provider.MRState{provider.MRStateOpen, provider.MRStateClosed, provider.MRStateMerged},
+			SourceBranch: branchMeta.Name,
+		})
 		if err != nil {
 			return nil, errors.WrapIf(err, "querying existing pull request")
 		}
-		if pr.State != githubv4.PullRequestStateOpen {
-			return nil, errPullRequestClosed{pr}
+		for _, mr := range page.MergeRequests {
+			if mr.ID == branchMeta.PullRequest.ID {
+				if mr.State != provider.MRStateOpen {
+					return nil, errPullRequestClosed{&mr}
+				}
+				return &mr, nil
+			}
 		}
-		return pr, nil
 	}
-	logrus.WithField("branch", branchMeta.Name).Debug("querying existing open PRs from GitHub")
-	existing, err := client.GetPullRequests(ctx, gh.GetPullRequestsInput{
-		Owner:       repoMeta.Owner,
-		Repo:        repoMeta.Name,
-		HeadRefName: branchMeta.Name,
-		BaseRefName: baseRefName,
-		States:      []githubv4.PullRequestState{githubv4.PullRequestStateOpen},
+	logrus.WithField("branch", branchMeta.Name).Debug("querying existing open PRs from provider")
+	existing, err := providerClient.GetMergeRequests(ctx, provider.GetMRsInput{
+		ProjectID:    repoMeta.ID,
+		SourceBranch: branchMeta.Name,
+		TargetBranch: baseRefName,
+		States:       []provider.MRState{provider.MRStateOpen},
 	})
 	if err != nil {
 		return nil, errors.WrapIf(err, "querying existing pull requests")
 	}
-	if len(existing.PullRequests) > 1 {
+	if len(existing.MergeRequests) > 1 {
 		return nil, errors.Errorf("multiple existing PRs found for %q", branchMeta.Name)
-	} else if len(existing.PullRequests) == 1 {
-		return &existing.PullRequests[0], nil
+	} else if len(existing.MergeRequests) == 1 {
+		return &existing.MergeRequests[0], nil
 	}
 	return nil, nil
 }
 
-// CreatePullRequest creates a pull request on GitHub for the current branch, if
+// CreatePullRequest creates a pull request on the provider for the current branch, if
 // one doesn't already exist.
 func CreatePullRequest(
 	ctx context.Context,
 	repo *git.Repo,
-	client *gh.Client,
+	providerClient provider.Provider,
 	tx meta.WriteTx,
 	opts CreatePullRequestOpts,
 ) (_ *CreatePullRequestResult, reterr error) {
@@ -150,16 +158,16 @@ func CreatePullRequest(
 	repoMeta := tx.Repository()
 	branchMeta, _ := tx.Branch(opts.BranchName)
 
-	var existingPR *gh.PullRequest
+	var existingPR *provider.MergeRequest
 	if !opts.Force {
 		var err error
-		existingPR, err = getExistingOpenPR(ctx, client, repoMeta, branchMeta, opts.BranchName)
+		existingPR, err = getExistingOpenPR(ctx, providerClient, repoMeta, branchMeta, opts.BranchName)
 		if closed, ok := errutils.As[errPullRequestClosed](err); ok {
 			_, _ = fmt.Fprint(os.Stderr,
 				colors.Failure("Existing pull request for branch "),
 				colors.UserInput(opts.BranchName),
 				colors.Failure(" is "), colors.UserInput(closed.State),
-				colors.Failure(": "), colors.UserInput(closed.Permalink),
+				colors.Failure(": "), colors.UserInput(closed.WebURL),
 				"\n",
 			)
 			_, _ = fmt.Fprint(os.Stderr,
@@ -286,7 +294,7 @@ func CreatePullRequest(
 			opts.Title = existingPR.Title
 		}
 		if opts.Body == "" {
-			opts.Body = existingPR.Body
+			opts.Body = existingPR.Description
 		}
 	}
 
@@ -384,7 +392,7 @@ func CreatePullRequest(
 		draft = true
 	}
 
-	pull, didCreatePR, err := ensurePR(ctx, client, repoMeta, tx, ensurePROpts{
+	mr, didCreatePR, err := ensurePR(ctx, providerClient, repoMeta, tx, ensurePROpts{
 		baseRefName: parentState.Name,
 		headRefName: opts.BranchName,
 		title:       opts.Title,
@@ -401,9 +409,9 @@ func CreatePullRequest(
 	}
 
 	branchMeta.PullRequest = &meta.PullRequest{
-		Number:    pull.Number,
-		ID:        pull.ID,
-		Permalink: pull.Permalink,
+		Number:    mr.Number,
+		ID:        mr.ID,
+		Permalink: mr.WebURL,
 	}
 	// It's possible that a new PR is created with the same branch. Reset the MergeCommit.
 	branchMeta.MergeCommit = ""
@@ -415,15 +423,15 @@ func CreatePullRequest(
 	}
 	_, _ = fmt.Fprint(os.Stderr,
 		"  - ", action, " pull request ",
-		colors.UserInput(pull.Permalink), "\n",
+		colors.UserInput(mr.WebURL), "\n",
 	)
 
 	if didCreatePR && !opts.NoOpenBrowser && config.Av.PullRequest.OpenBrowser {
-		OpenPullRequestInBrowser(ctx, pull.Permalink)
+		OpenPullRequestInBrowser(ctx, mr.WebURL)
 	}
 
 	tx.SetBranch(branchMeta)
-	return &CreatePullRequestResult{didCreatePR, branchMeta, pull}, nil
+	return &CreatePullRequestResult{didCreatePR, branchMeta, mr}, nil
 }
 
 func OpenPullRequestInBrowser(ctx context.Context, pullRequestLink string) {
@@ -507,7 +515,7 @@ type ensurePROpts struct {
 	body        string
 	meta        PRMetadata
 	draft       bool
-	existingPR  *gh.PullRequest
+	existingPR  *provider.MergeRequest
 }
 
 // ensurePR returns the pull request for the given input, creating a new
@@ -516,119 +524,114 @@ type ensurePROpts struct {
 // occurred.
 func ensurePR(
 	ctx context.Context,
-	client *gh.Client,
+	providerClient provider.Provider,
 	repoMeta meta.Repository,
 	tx meta.ReadTx,
 	opts ensurePROpts,
-) (*gh.PullRequest, bool, error) {
+) (*provider.MergeRequest, bool, error) {
 	// Don't pass in a stack to start; we'll do a pass over all open PRs in the stack later.
 	var initialStack *stackutils.StackTreeNode = nil
 
 	if opts.existingPR != nil {
 		newBody := AddPRMetadataAndStack(opts.body, opts.meta, opts.headRefName, initialStack, tx)
-		updatedPR, err := client.UpdatePullRequest(ctx, githubv4.UpdatePullRequestInput{
-			PullRequestID: opts.existingPR.ID,
-			Title:         gh.Ptr(githubv4.String(opts.title)),
-			Body:          gh.Ptr(githubv4.String(newBody)),
-			BaseRefName:   gh.Ptr(githubv4.String(opts.baseRefName)),
+		updatedMR, err := providerClient.UpdateMergeRequest(ctx, provider.UpdateMRInput{
+			ProjectID:   repoMeta.ID,
+			MRID:        opts.existingPR.ID,
+			Title:       &opts.title,
+			Description: &newBody,
 		})
 		if err != nil {
 			return nil, false, errors.WithStack(err)
 		}
-		return updatedPR, false, nil
+		return updatedMR, false, nil
 	}
-	pull, err := client.CreatePullRequest(ctx, githubv4.CreatePullRequestInput{
-		RepositoryID: githubv4.ID(repoMeta.ID),
-		BaseRefName:  githubv4.String(opts.baseRefName),
-		HeadRefName:  githubv4.String(opts.headRefName),
-		Title:        githubv4.String(opts.title),
-		Body: gh.Ptr(
-			githubv4.String(
-				AddPRMetadataAndStack(opts.body, opts.meta, opts.headRefName, initialStack, tx),
-			),
-		),
-		Draft: gh.Ptr(githubv4.Boolean(opts.draft)),
+	mr, err := providerClient.CreateMergeRequest(ctx, provider.CreateMRInput{
+		ProjectID:    repoMeta.ID,
+		SourceBranch: opts.headRefName,
+		TargetBranch: opts.baseRefName,
+		Title:        opts.title,
+		Description:  AddPRMetadataAndStack(opts.body, opts.meta, opts.headRefName, initialStack, tx),
+		Draft:        opts.draft,
 	})
 	if err != nil {
 		return nil, false, errors.WithStack(err)
 	}
-	return pull, true, nil
+	return mr, true, nil
 }
 
 type UpdatePullRequestResult struct {
 	// True if the pull request information changed (e.g., a new pull request
 	// was found or if the pull request changed state)
 	Changed bool
-	// The pull request object that was returned from GitHub
-	Pull *gh.PullRequest
+	// The merge request object that was returned from the provider
+	MR *provider.MergeRequest
 }
 
-// UpdatePullRequestState fetches the latest pull request information from GitHub
+// UpdatePullRequestState fetches the latest pull request information from the provider
 // and writes the relevant branch metadata.
 func UpdatePullRequestState(
 	ctx context.Context,
-	client *gh.Client,
+	providerClient provider.Provider,
 	tx meta.WriteTx,
 	branchName string,
 ) (*UpdatePullRequestResult, error) {
 	repoMeta := tx.Repository()
 	branch, _ := tx.Branch(branchName)
 
-	page, err := client.GetPullRequests(ctx, gh.GetPullRequestsInput{
-		Owner:       repoMeta.Owner,
-		Repo:        repoMeta.Name,
-		HeadRefName: branchName,
+	page, err := providerClient.GetMergeRequests(ctx, provider.GetMRsInput{
+		ProjectID:    repoMeta.ID,
+		SourceBranch: branchName,
 	})
 	if err != nil {
 		return nil, errors.WrapIf(
 			err,
-			"querying GitHub pull requests. Make sure GitHub token is set or refresh.\nSee: https://docs.aviator.co/aviator-cli#getting-started",
+			"querying provider merge requests. Make sure provider token is set or refresh.\nSee: https://docs.aviator.co/aviator-cli#getting-started",
 		)
 	}
 
-	if len(page.PullRequests) == 0 {
+	if len(page.MergeRequests) == 0 {
 		// branch has no pull request
 		if branch.PullRequest != nil {
 			// This should never happen?
 			logrus.WithFields(logrus.Fields{
 				"branch": branch.Name,
 				"pull":   branch.PullRequest.Permalink,
-			}).Error("GitHub reported no pull requests for branch but local metadata has pull request")
+			}).Error("Provider reported no merge requests for branch but local metadata has pull request")
 			return nil, errors.New(
-				"GitHub reported no pull requests for branch but local metadata has pull request",
+				"Provider reported no merge requests for branch but local metadata has pull request",
 			)
 		}
 
 		return &UpdatePullRequestResult{false, nil}, nil
 	}
 
-	// The latest info for the pull request that we have stored in local metadata
+	// The latest info for the merge request that we have stored in local metadata
 	// (we can use this to check if the pull was closed/merged)
-	var currentPull *gh.PullRequest
-	// The current open pull request (if any)
-	var openPull *gh.PullRequest
-	for i := range page.PullRequests {
-		pull := &page.PullRequests[i]
-		if branch.PullRequest != nil && pull.ID == branch.PullRequest.ID {
-			currentPull = pull
+	var currentMR *provider.MergeRequest
+	// The current open merge request (if any)
+	var openMR *provider.MergeRequest
+	for i := range page.MergeRequests {
+		mr := &page.MergeRequests[i]
+		if branch.PullRequest != nil && mr.ID == branch.PullRequest.ID {
+			currentMR = mr
 		}
-		if pull.State != githubv4.PullRequestStateOpen {
+		if mr.State != provider.MRStateOpen {
 			continue
 		}
-		// GH only allows one open pull for a given (head, base) pair, but
-		// we only support one open pull per head branch (the workflow of
-		// opening a pull from a head branch into multiple base branches is
+		// Providers only allow one open MR for a given (head, base) pair, but
+		// we only support one open MR per head branch (the workflow of
+		// opening a MR from a head branch into multiple base branches is
 		// rare). This probably isn't necessary but better to be defensive
 		// here.
-		if openPull != nil {
+		if openMR != nil {
 			return nil, errors.Errorf(
-				"multiple open pull requests for branch %q (#%d into %q and #%d into %q)",
+				"multiple open merge requests for branch %q (#%d into %q and #%d into %q)",
 				branchName,
-				openPull.Number, openPull.BaseRefName,
-				pull.Number, pull.BaseRefName,
+				openMR.Number, openMR.TargetBranch,
+				mr.Number, mr.TargetBranch,
 			)
 		}
-		openPull = pull
+		openMR = mr
 	}
 
 	changed := false
@@ -637,40 +640,54 @@ func UpdatePullRequestState(
 		oldId = branch.PullRequest.ID
 	}
 
-	var newPull *gh.PullRequest
-	if openPull != nil {
-		if oldId != openPull.ID {
+	var newMR *provider.MergeRequest
+	if openMR != nil {
+		if oldId != openMR.ID {
 			changed = true
 		}
 		branch.PullRequest = &meta.PullRequest{
-			ID:        openPull.ID,
-			Number:    openPull.Number,
-			Permalink: openPull.Permalink,
-			State:     openPull.State,
+			ID:        openMR.ID,
+			Number:    openMR.Number,
+			Permalink: openMR.WebURL,
+			State:     convertMRStateToGithubState(openMR.State),
 		}
-		newPull = openPull
+		newMR = openMR
 	} else {
-		// openPull is nil so the PR should be merged or closed
-		if currentPull != nil {
-			branch.MergeCommit = currentPull.GetMergeCommit()
+		// openMR is nil so the MR should be merged or closed
+		if currentMR != nil {
+			branch.MergeCommit = currentMR.MergeCommit
 			branch.PullRequest = &meta.PullRequest{
-				ID:        currentPull.ID,
-				Number:    currentPull.Number,
-				Permalink: currentPull.Permalink,
-				State:     currentPull.State,
+				ID:        currentMR.ID,
+				Number:    currentMR.Number,
+				Permalink: currentMR.WebURL,
+				State:     convertMRStateToGithubState(currentMR.State),
 			}
 		} else {
-			// openPull and currentPull is nil
+			// openMR and currentMR is nil
 			if branch.PullRequest != nil {
 				changed = true
 			}
 			branch.PullRequest = nil
 		}
-		newPull = currentPull
+		newMR = currentMR
 	}
 
 	tx.SetBranch(branch)
-	return &UpdatePullRequestResult{changed, newPull}, nil
+	return &UpdatePullRequestResult{changed, newMR}, nil
+}
+
+// convertMRStateToGithubState converts provider MR states to GitHub-compatible states
+func convertMRStateToGithubState(state provider.MRState) githubv4.PullRequestState {
+	switch state {
+	case provider.MRStateOpen:
+		return githubv4.PullRequestStateOpen
+	case provider.MRStateClosed:
+		return githubv4.PullRequestStateClosed
+	case provider.MRStateMerged:
+		return githubv4.PullRequestStateMerged
+	default:
+		return githubv4.PullRequestStateOpen
+	}
 }
 
 type PRMetadata struct {
@@ -891,12 +908,12 @@ func AddPRMetadataAndStack(
 	return sb.String()
 }
 
-// UpdatePullRequestWithStack updates the GitHub pull request associated with the given branch to include
+// UpdatePullRequestWithStack updates the provider merge request associated with the given branch to include
 // the stack of branches that the branch is a part of.
 // This should be called after all applicable PRs have been created to ensure we can properly link them.
 func UpdatePullRequestWithStack(
 	ctx context.Context,
-	client *gh.Client,
+	providerClient provider.Provider,
 	tx meta.WriteTx,
 	branchName string,
 ) error {
@@ -919,20 +936,21 @@ func UpdatePullRequestWithStack(
 		return err
 	}
 
-	existingPR, err := getExistingOpenPR(ctx, client, repoMeta, branchMeta, branchName)
+	existingPR, err := getExistingOpenPR(ctx, providerClient, repoMeta, branchMeta, branchName)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 
-	body, prMeta, err := ParsePRBody(existingPR.Body)
+	body, prMeta, err := ParsePRBody(existingPR.Description)
 	if err != nil {
 		return err
 	}
 
 	newBody := AddPRMetadataAndStack(body, prMeta, branchName, stackToWrite, tx)
-	_, err = client.UpdatePullRequest(ctx, githubv4.UpdatePullRequestInput{
-		PullRequestID: existingPR.ID,
-		Body:          gh.Ptr(githubv4.String(newBody)),
+	_, err = providerClient.UpdateMergeRequest(ctx, provider.UpdateMRInput{
+		ProjectID:   repoMeta.ID,
+		MRID:        existingPR.ID,
+		Description: &newBody,
 	})
 	if err != nil {
 		return errors.WithStack(err)
@@ -941,16 +959,16 @@ func UpdatePullRequestWithStack(
 	return nil
 }
 
-// UpdatePullRequestsWithStack updates the GitHub pull requests associated with the given branches to include
+// UpdatePullRequestsWithStack updates the provider merge requests associated with the given branches to include
 // the stack of branches that each branch is a part of.
 func UpdatePullRequestsWithStack(
 	ctx context.Context,
-	client *gh.Client,
+	providerClient provider.Provider,
 	tx meta.WriteTx,
 	branchNames []string,
 ) error {
 	for _, branchName := range branchNames {
-		if err := UpdatePullRequestWithStack(ctx, client, tx, branchName); err != nil {
+		if err := UpdatePullRequestWithStack(ctx, providerClient, tx, branchName); err != nil {
 			return err
 		}
 	}
