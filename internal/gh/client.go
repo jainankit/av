@@ -21,6 +21,13 @@ type Client struct {
 // NewClient creates a new GitHub client.
 // It takes configuration from the global config.Av.GitHub variable.
 func NewClient(ctx context.Context, token string) (*Client, error) {
+	return NewClientWithBaseURL(ctx, token, config.Av.GitHub.BaseURL)
+}
+
+// NewClientWithBaseURL creates a new GitHub client with a specific base URL.
+// This function is compatible with provider factory instantiation.
+// If baseURL is empty, it uses the public GitHub API.
+func NewClientWithBaseURL(ctx context.Context, token, baseURL string) (*Client, error) {
 	if token == "" {
 		return nil, errors.Errorf("no GitHub token provided (do you need to configure one?)")
 	}
@@ -29,10 +36,10 @@ func NewClient(ctx context.Context, token string) (*Client, error) {
 	)
 	httpClient := oauth2.NewClient(ctx, src)
 	var gh *githubv4.Client
-	if config.Av.GitHub.BaseURL == "" {
+	if baseURL == "" {
 		gh = githubv4.NewClient(httpClient)
 	} else {
-		gh = githubv4.NewEnterpriseClient(config.Av.GitHub.BaseURL+"/api/graphql", httpClient)
+		gh = githubv4.NewEnterpriseClient(baseURL+"/api/graphql", httpClient)
 	}
 	return &Client{httpClient, gh}, nil
 }
@@ -80,4 +87,14 @@ func (c *Client) mutate(
 		}
 	}()
 	return c.gh.Mutate(ctx, mutation, input, variables)
+}
+
+// HTTPClient returns the underlying HTTP client for advanced usage
+func (c *Client) HTTPClient() *http.Client {
+	return c.httpClient
+}
+
+// GraphQLClient returns the underlying GitHub GraphQL client for direct access
+func (c *Client) GraphQLClient() *githubv4.Client {
+	return c.gh
 }

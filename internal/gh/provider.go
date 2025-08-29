@@ -33,7 +33,7 @@ func (p *GitHubProvider) CreateMergeRequest(ctx context.Context, input provider.
 	// Get repository to get the proper repository ID
 	ghRepo, err := p.client.GetRepositoryBySlug(ctx, input.ProjectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get repository")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to get repository"))
 	}
 
 	// Create GitHub pull request input
@@ -48,7 +48,7 @@ func (p *GitHubProvider) CreateMergeRequest(ctx context.Context, input provider.
 
 	ghPR, err := p.client.CreatePullRequest(ctx, ghInput)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create GitHub pull request")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to create GitHub pull request"))
 	}
 
 	return p.convertGitHubPRToMR(ghPR, owner, repo), nil
@@ -86,7 +86,7 @@ func (p *GitHubProvider) UpdateMergeRequest(ctx context.Context, input provider.
 
 	ghPR, err := p.client.UpdatePullRequest(ctx, ghInput)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to update GitHub pull request")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to update GitHub pull request"))
 	}
 
 	// Handle draft status separately if needed
@@ -94,12 +94,12 @@ func (p *GitHubProvider) UpdateMergeRequest(ctx context.Context, input provider.
 		if *input.Draft && !ghPR.IsDraft {
 			ghPR, err = p.client.ConvertPullRequestToDraft(ctx, ghPR.ID)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to convert pull request to draft")
+				return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to convert pull request to draft"))
 			}
 		} else if !*input.Draft && ghPR.IsDraft {
 			ghPR, err = p.client.MarkPullRequestReadyForReview(ctx, ghPR.ID)
 			if err != nil {
-				return nil, errors.Wrap(err, "failed to mark pull request ready for review")
+				return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to mark pull request ready for review"))
 			}
 		}
 	}
@@ -141,7 +141,7 @@ func (p *GitHubProvider) GetMergeRequests(ctx context.Context, input provider.Ge
 
 	ghPage, err := p.client.GetPullRequests(ctx, ghInput)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get GitHub pull requests")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to get GitHub pull requests"))
 	}
 
 	// Convert GitHub PRs to unified MRs
@@ -164,7 +164,7 @@ func (p *GitHubProvider) GetRepository(ctx context.Context, owner, repo string) 
 	projectID := owner + "/" + repo
 	ghRepo, err := p.client.GetRepositoryBySlug(ctx, projectID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get GitHub repository")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to get GitHub repository"))
 	}
 
 	return &provider.Repository{
@@ -186,7 +186,7 @@ func (p *GitHubProvider) ConvertToDraft(ctx context.Context, projectID string, m
 
 	ghPR, err := p.client.ConvertPullRequestToDraft(ctx, mrID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert GitHub pull request to draft")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to convert GitHub pull request to draft"))
 	}
 
 	return p.convertGitHubPRToMR(ghPR, owner, repo), nil
@@ -202,7 +202,7 @@ func (p *GitHubProvider) MarkReadyForReview(ctx context.Context, projectID strin
 
 	ghPR, err := p.client.MarkPullRequestReadyForReview(ctx, mrID)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to mark GitHub pull request ready for review")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to mark GitHub pull request ready for review"))
 	}
 
 	return p.convertGitHubPRToMR(ghPR, owner, repo), nil
@@ -230,7 +230,7 @@ func (p *GitHubProvider) RequestReviews(ctx context.Context, projectID string, m
 
 	ghPR, err := p.client.RequestReviews(ctx, ghInput)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to request reviews on GitHub pull request")
+		return nil, MapGitHubErrorToProvider(errors.Wrap(err, "failed to request reviews on GitHub pull request"))
 	}
 
 	return p.convertGitHubPRToMR(ghPR, owner, repo), nil
