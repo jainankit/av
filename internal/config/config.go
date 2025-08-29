@@ -43,6 +43,22 @@ type PullRequest struct {
 	WriteStack bool
 }
 
+type GitLab struct {
+	// The GitLab API token to use for authenticating to the GitLab API.
+	Token string
+	// The base URL of the GitLab instance to use.
+	// This should be set for on-premises GitLab instances.
+	// For example, "https://gitlab.mycompany.com/" (without a "/api/v4" suffix).
+	// For gitlab.com, this can be left empty and will default to "https://gitlab.com/".
+	BaseURL string
+}
+
+type Provider struct {
+	// Type specifies the provider type to use (github or gitlab).
+	// If not set, the provider will be auto-detected from the git remote URL.
+	Type string
+}
+
 type Aviator struct {
 	// The base URL of the Aviator API to use.
 	// By default, this is https://aviator.co, but for on-prem installations
@@ -56,6 +72,8 @@ type Aviator struct {
 var Av = struct {
 	PullRequest             PullRequest
 	GitHub                  GitHub
+	GitLab                  GitLab
+	Provider                Provider
 	Aviator                 Aviator
 	AdditionalTrunkBranches []string
 	Remote                  string
@@ -67,6 +85,8 @@ var Av = struct {
 		OpenBrowser: true,
 	},
 	GitHub:                  GitHub{},
+	GitLab:                  GitLab{},
+	Provider:                Provider{},
 	AdditionalTrunkBranches: []string{},
 	Remote:                  "",
 }
@@ -138,6 +158,20 @@ func loadFromEnv() error {
 		Av.GitHub.Token = githubToken
 	} else if githubToken := os.Getenv("GITHUB_TOKEN"); githubToken != "" {
 		Av.GitHub.Token = githubToken
+	}
+
+	if gitlabToken := os.Getenv("AV_GITLAB_TOKEN"); gitlabToken != "" {
+		Av.GitLab.Token = gitlabToken
+	} else if gitlabToken := os.Getenv("GITLAB_TOKEN"); gitlabToken != "" {
+		Av.GitLab.Token = gitlabToken
+	}
+
+	if gitlabBaseURL := os.Getenv("AV_GITLAB_BASE_URL"); gitlabBaseURL != "" {
+		Av.GitLab.BaseURL = gitlabBaseURL
+	}
+
+	if providerType := os.Getenv("AV_PROVIDER_TYPE"); providerType != "" {
+		Av.Provider.Type = providerType
 	}
 
 	if apiToken := os.Getenv("AV_API_TOKEN"); apiToken != "" {
