@@ -1,19 +1,15 @@
 package gh
 
-import "context"
+import (
+	"context"
 
-type Viewer struct {
-	Name  string `graphql:"name"`
-	Login string `graphql:"login"`
-}
+	"github.com/aviator-co/av/internal/provider/github"
+)
 
+// Viewer maintains the same structure as before for backward compatibility
+type Viewer = github.Viewer
+
+// Viewer returns information about the authenticated user
 func (c *Client) Viewer(ctx context.Context) (*Viewer, error) {
-	var query struct {
-		Viewer Viewer `graphql:"viewer"`
-	}
-	err := c.query(ctx, &query, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &query.Viewer, nil
+	return c.provider.ViewerGithub(ctx)
 }

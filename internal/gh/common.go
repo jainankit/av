@@ -1,13 +1,10 @@
 package gh
 
+import "github.com/aviator-co/av/internal/provider/github"
+
 // PageInfo contains information about the current/previous/next page of results
 // when using paginated APIs.
-type PageInfo struct {
-	EndCursor       string
-	HasNextPage     bool
-	HasPreviousPage bool
-	StartCursor     string
-}
+type PageInfo = github.PageInfo
 
 // Ptr returns a pointer to the argument.
 //
@@ -18,17 +15,5 @@ type PageInfo struct {
 //
 // For example, `githubv4.CreatePullRequestInput{Draft: Ptr(true)}`.
 func Ptr[T any](v T) *T {
-	return &v
-}
-
-// nullable returns a pointer to the argument if it's not the zero value,
-// otherwise it returns nil.
-// This is useful to translate between Golang-style "unset is zero" and GraphQL
-// which distinguishes between unset (null) and zero values.
-func nullable[T comparable](v T) *T {
-	var zero T
-	if v == zero {
-		return nil
-	}
-	return &v
+	return github.Ptr(v)
 }

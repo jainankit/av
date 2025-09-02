@@ -3,27 +3,13 @@ package gh
 import (
 	"context"
 
-	"emperror.dev/errors"
-	"github.com/shurcooL/githubv4"
+	"github.com/aviator-co/av/internal/provider/github"
 )
 
-type User struct {
-	ID    githubv4.ID `graphql:"id"`
-	Login string      `graphql:"login"`
-}
+// User maintains the same structure as before for backward compatibility
+type User = github.User
 
 // User returns information about the given user.
 func (c *Client) User(ctx context.Context, login string) (*User, error) {
-	var query struct {
-		User User `graphql:"user(login: $login)"`
-	}
-	if err := c.query(ctx, &query, map[string]any{
-		"login": githubv4.String(login),
-	}); err != nil {
-		return nil, err
-	}
-	if query.User.ID == "" {
-		return nil, errors.Errorf("GitHub user %q not found", login)
-	}
-	return &query.User, nil
+	return c.provider.UserGithub(ctx, login)
 }
