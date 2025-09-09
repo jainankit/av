@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -109,7 +110,7 @@ func (c *Client) request(ctx context.Context, method, path string, body interfac
 }
 
 // get executes a GET request and unmarshals the response into the provided result struct
-func (c *Client) get(ctx context.Context, path string, result interface{}) (reterr error) {
+func (c *Client) get(ctx context.Context, path string, params map[string]string, result interface{}) (reterr error) {
 	log := logrus.WithField("path", path)
 	log.Debug("executing GitLab API GET request...")
 	startTime := time.Now()
@@ -125,6 +126,20 @@ func (c *Client) get(ctx context.Context, path string, result interface{}) (rete
 			log.Debug("GitLab API GET request succeeded")
 		}
 	}()
+	
+	// Add query parameters if provided
+	if len(params) > 0 {
+		u, err := url.Parse(c.baseURL + "/api/v4" + path)
+		if err != nil {
+			return errors.Wrap(err, "failed to parse URL")
+		}
+		q := u.Query()
+		for key, value := range params {
+			q.Set(key, value)
+		}
+		u.RawQuery = q.Encode()
+		path = strings.TrimPrefix(u.RequestURI(), "/api/v4")
+	}
 	
 	resp, err := c.request(ctx, "GET", path, nil)
 	if err != nil {
@@ -253,6 +268,80 @@ func (c *Client) checkResponse(resp *http.Response) error {
 	
 	// Fall back to generic error with response body
 	return errors.Errorf("GitLab API request failed (status %d): %s", resp.StatusCode, string(bodyBytes))
+}
+
+// getPaginated executes a GET request and returns pagination info along with the response
+func (c *Client) getPaginated(ctx context.Context, path string, params map[string]string, result interface{}) (*PageInfo, error) {
+	// Add query parameters if provided
+	if len(params) > 0 {
+		u, err := url.Parse(c.baseURL + "/api/v4" + path)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse URL")
+		}
+		q := u.Query()
+		for key, value := range params {
+			q.Set(key, value)
+		}
+		u.RawQuery = q.Encode()
+		path = strings.TrimPrefix(u.RequestURI(), "/api/v4")
+	}
+	
+	resp, err := c.request(ctx, "GET", path, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	
+	if err := c.checkResponse(resp); err != nil {
+		return nil, err
+	}
+	
+	if result != nil {
+		if err := json.NewDecoder(resp.Body).Decode(result); err != nil {
+			return nil, errors.Wrap(err, "failed to decode response")
+		}
+	}
+	
+	// Extract pagination info from response headers
+	pageInfo := &PageInfo{}
+	
+	if page := resp.Header.Get("X-Page"); page != "" {
+		if p, err := strconv.Atoi(page); err == nil {
+			pageInfo.Page = p
+		}
+	}
+	
+	if perPage := resp.Header.Get("X-Per-Page"); perPage != "" {
+		if pp, err := strconv.Atoi(perPage); err == nil {
+			pageInfo.PerPage = pp
+		}
+	}
+	
+	if prevPage := resp.Header.Get("X-Prev-Page"); prevPage != "" && prevPage != "" {
+		if pp, err := strconv.Atoi(prevPage); err == nil {
+			pageInfo.PrevPage = &pp
+		}
+	}
+	
+	if nextPage := resp.Header.Get("X-Next-Page"); nextPage != "" && nextPage != "" {
+		if np, err := strconv.Atoi(nextPage); err == nil {
+			pageInfo.NextPage = &np
+		}
+	}
+	
+	if totalPages := resp.Header.Get("X-Total-Pages"); totalPages != "" {
+		if tp, err := strconv.Atoi(totalPages); err == nil {
+			pageInfo.TotalPages = tp
+		}
+	}
+	
+	if total := resp.Header.Get("X-Total"); total != "" {
+		if t, err := strconv.Atoi(total); err == nil {
+			pageInfo.Total = t
+		}
+	}
+	
+	return pageInfo, nil
 }
 
 // BaseURL returns the configured base URL for this GitLab client
