@@ -133,7 +133,18 @@ type UpdateMergeRequestInput struct {
 	Squash                   *bool   `json:"squash,omitempty"`
 }
 
-func (c *Client) GetMergeRequest(ctx context.Context, projectID, mergeRequestIID int) (*MergeRequest, error) {
+func (c *Client) GetMergeRequest(ctx context.Context, id int) (*MergeRequest, error) {
+	path := fmt.Sprintf("/merge_requests/%d", id)
+	
+	var mr MergeRequest
+	if err := c.get(ctx, path, nil, &mr); err != nil {
+		return nil, errors.Wrapf(err, "failed to get merge request %d", id)
+	}
+	
+	return &mr, nil
+}
+
+func (c *Client) GetMergeRequestByProject(ctx context.Context, projectID, mergeRequestIID int) (*MergeRequest, error) {
 	path := fmt.Sprintf("/projects/%d/merge_requests/%d", projectID, mergeRequestIID)
 	
 	var mr MergeRequest
