@@ -2,6 +2,7 @@ package providers
 
 import (
 	"context"
+	"strings"
 	"time"
 )
 
@@ -135,8 +136,8 @@ type Provider interface {
 	// Type returns the provider type
 	Type() ProviderType
 
-	// PullRequestProvider returns the pull request provider
-	PullRequestProvider() PullRequestProvider
+	// MergeRequestProvider returns the merge request provider
+	MergeRequestProvider() MergeRequestProvider
 
 	// UserProvider returns the user provider
 	UserProvider() UserProvider
@@ -145,8 +146,8 @@ type Provider interface {
 	RepositoryProvider() RepositoryProvider
 }
 
-// PullRequestProvider interface abstracts pull/merge request operations
-type PullRequestProvider interface {
+// MergeRequestProvider interface abstracts pull/merge request operations
+type MergeRequestProvider interface {
 	// GetByID retrieves a pull request by its ID
 	GetByID(ctx context.Context, id string) (*PullRequest, error)
 
@@ -230,9 +231,5 @@ const (
 
 // trimRefsPrefix removes the "refs/heads/" prefix from branch names if present
 func trimRefsPrefix(ref string) string {
-	const refsPrefix = "refs/heads/"
-	if len(ref) > len(refsPrefix) && ref[:len(refsPrefix)] == refsPrefix {
-		return ref[len(refsPrefix):]
-	}
-	return ref
+	return strings.TrimPrefix(ref, "refs/heads/")
 }
