@@ -43,6 +43,16 @@ type PullRequest struct {
 	WriteStack bool
 }
 
+type GitLab struct {
+	// The GitLab API token to use for authenticating to the GitLab API.
+	Token string
+	// The base URL of the GitLab instance to use.
+	// This should only be set for self-hosted GitLab instances.
+	// For example, "https://gitlab.mycompany.com/" (without a "/api/v4" or
+	// "/api/graphql" suffix).
+	BaseURL string
+}
+
 type Aviator struct {
 	// The base URL of the Aviator API to use.
 	// By default, this is https://aviator.co, but for on-prem installations
@@ -56,6 +66,7 @@ type Aviator struct {
 var Av = struct {
 	PullRequest             PullRequest
 	GitHub                  GitHub
+	GitLab                  GitLab
 	Aviator                 Aviator
 	AdditionalTrunkBranches []string
 	Remote                  string
@@ -67,6 +78,7 @@ var Av = struct {
 		OpenBrowser: true,
 	},
 	GitHub:                  GitHub{},
+	GitLab:                  GitLab{},
 	AdditionalTrunkBranches: []string{},
 	Remote:                  "",
 }
@@ -138,6 +150,16 @@ func loadFromEnv() error {
 		Av.GitHub.Token = githubToken
 	} else if githubToken := os.Getenv("GITHUB_TOKEN"); githubToken != "" {
 		Av.GitHub.Token = githubToken
+	}
+
+	if gitlabToken := os.Getenv("AV_GITLAB_TOKEN"); gitlabToken != "" {
+		Av.GitLab.Token = gitlabToken
+	} else if gitlabToken := os.Getenv("GITLAB_TOKEN"); gitlabToken != "" {
+		Av.GitLab.Token = gitlabToken
+	}
+
+	if gitlabBaseURL := os.Getenv("AV_GITLAB_BASE_URL"); gitlabBaseURL != "" {
+		Av.GitLab.BaseURL = gitlabBaseURL
 	}
 
 	if apiToken := os.Getenv("AV_API_TOKEN"); apiToken != "" {
