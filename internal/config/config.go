@@ -1,3 +1,37 @@
+// Package config provides configuration management for av CLI tool.
+//
+// Configuration supports both GitHub and GitLab providers, but they are mutually exclusive.
+//
+// Example configuration file (~/.config/av/config.yaml):
+//
+//	# GitHub configuration (mutually exclusive with GitLab)
+//	github:
+//	  token: "ghp_xxxxxxxxxxxxxxxxxxxx"
+//	  baseURL: "https://github.mycompany.com/"  # For GitHub Enterprise Server
+//
+//	# GitLab configuration (mutually exclusive with GitHub)
+//	gitlab:
+//	  token: "glpat_xxxxxxxxxxxxxxxxxxxx"
+//	  baseURL: "https://gitlab.mycompany.com/"  # For self-hosted GitLab instances
+//
+//	# Pull request settings
+//	pullRequest:
+//	  draft: false
+//	  openBrowser: true
+//	  noWIPDetection: false
+//	  branchNamePrefix: "feature/"
+//	  writeStack: false
+//
+//	# Additional trunk branches
+//	additionalTrunkBranches:
+//	  - "develop"
+//	  - "staging"
+//
+// Environment variables:
+//   - AV_GITHUB_TOKEN or GITHUB_TOKEN: GitHub API token
+//   - AV_GITLAB_TOKEN or GITLAB_TOKEN: GitLab API token
+//   - AV_API_TOKEN: Aviator API token
+//   - AV_API_HOST: Aviator API host
 package config
 
 import (
@@ -19,6 +53,16 @@ type GitHub struct {
 	BaseURL string
 }
 
+type GitLab struct {
+	// The GitLab API token to use for authenticating to the GitLab API.
+	Token string
+	// The base URL of the GitLab instance to use.
+	// This should only be set for self-hosted GitLab instances.
+	// For example, "https://gitlab.mycompany.com/" (without a "/api/v4" or
+	// "/api/graphql" suffix).
+	BaseURL string
+}
+
 type PullRequest struct {
 	Draft       bool
 	OpenBrowser bool
@@ -31,14 +75,15 @@ type PullRequest struct {
 	// file in the repository.
 	RebaseWithDraft *bool
 
-	// By default, when the pull request title contains "WIP", it automatically sets the PR as
-	// a draft PR. Setting this to true suppresses this behavior.
+	// By default, when the pull request title contains "WIP", it automatically
+	// sets the PR as a draft PR. Setting this to true suppresses this behavior.
 	NoWIPDetection bool
 
 	// Branch prefix to use for creating new branches.
 	BranchNamePrefix string
 
-	// If true, the CLI will automatically add/update a comment to all PRs linking other PRs in the stack.
+	// If true, the CLI will automatically add/update a comment to all PRs
+	// linking other PRs in the stack.
 	// False by default, since Aviator's MergeQueue also adds a similar comment.
 	WriteStack bool
 }
@@ -56,6 +101,7 @@ type Aviator struct {
 var Av = struct {
 	PullRequest             PullRequest
 	GitHub                  GitHub
+	GitLab                  GitLab
 	Aviator                 Aviator
 	AdditionalTrunkBranches []string
 	Remote                  string
@@ -67,19 +113,23 @@ var Av = struct {
 		OpenBrowser: true,
 	},
 	GitHub:                  GitHub{},
+	GitLab:                  GitLab{},
 	AdditionalTrunkBranches: []string{},
 	Remote:                  "",
 }
 
 // Load initializes the configuration values.
 //
-// This takes an optional repository config directory, which, when exists, overrides the default
-// config.
+// This takes an optional repository config directory, which, when exists,
+// overrides the default config.
 func Load(repoConfigDir string) error {
 	if err := loadFromFile(repoConfigDir); err != nil {
 		return err
 	}
 	if err := loadFromEnv(); err != nil {
+		return err
+	}
+	if err := validate(); err != nil {
 		return err
 	}
 	return nil
@@ -89,12 +139,12 @@ func loadFromFile(repoConfigDir string) error {
 	config := viper.New()
 	// The base filename of the config files.
 	config.SetConfigName("config")
-	// With config.ReadInConfig, Viper looks for a file with `config.$EXT` where $EXT is
-	// viper.SupportedExts. It tries to find the file in the following directories in this
-	// order (e.g. $XDG_CONFIG_HOME/av/config.yaml first).
+	// With config.ReadInConfig, Viper looks for a file with `config.$EXT` where
+	// $EXT is viper.SupportedExts. It tries to find the file in the following
+	// directories in this order (e.g. $XDG_CONFIG_HOME/av/config.yaml first).
 	//
-	// Note that Viper will find only one file in these directories, so if there are multiple,
-	// only one is read.
+	// Note that Viper will find only one file in these directories, so if there
+	// are multiple, only one is read.
 	config.AddConfigPath("$XDG_CONFIG_HOME/av")
 	config.AddConfigPath("$HOME/.config/av")
 	config.AddConfigPath("$HOME/.av")
@@ -105,12 +155,15 @@ func loadFromFile(repoConfigDir string) error {
 			return err
 		}
 	} else {
-		logrus.WithField("config_file", config.ConfigFileUsed()).Debug("loaded config file")
+		logrus.WithField("config_file", config.ConfigFileUsed()).Debug(
+			"loaded config file",
+		)
 	}
 
-	// As stated above, Viper will read only one file from the above paths. However, we want to
-	// support per-repo configuration that overrides the global configuration. Here, we mimic
-	// the behavior of Viper by looking for the per-repo config file and merge it.
+	// As stated above, Viper will read only one file from the above paths.
+	// However, we want to support per-repo configuration that overrides the
+	// global configuration. Here, we mimic the behavior of Viper by looking for
+	// the per-repo config file and merge it.
 	for _, ext := range viper.SupportedExts {
 		fp := filepath.Join(repoConfigDir, "config."+ext)
 		if stat, err := os.Stat(fp); err == nil {
@@ -120,7 +173,9 @@ func loadFromFile(repoConfigDir string) error {
 				if err := config.MergeInConfig(); err != nil {
 					return errors.Wrapf(err, "failed to read %s", fp)
 				}
-				logrus.WithField("config_file", fp).Debug("loaded config file")
+				logrus.WithField("config_file", fp).Debug(
+					"loaded config file",
+				)
 				break
 			}
 		}
@@ -140,11 +195,34 @@ func loadFromEnv() error {
 		Av.GitHub.Token = githubToken
 	}
 
+	if gitlabToken := os.Getenv("AV_GITLAB_TOKEN"); gitlabToken != "" {
+		Av.GitLab.Token = gitlabToken
+	} else if gitlabToken := os.Getenv("GITLAB_TOKEN"); gitlabToken != "" {
+		Av.GitLab.Token = gitlabToken
+	}
+
 	if apiToken := os.Getenv("AV_API_TOKEN"); apiToken != "" {
 		Av.Aviator.APIToken = apiToken
 	}
 	if apiHost := os.Getenv("AV_API_HOST"); apiHost != "" {
 		Av.Aviator.APIHost = apiHost
+	}
+
+	return nil
+}
+
+// validate performs configuration validation, including mutual exclusivity checks
+// between GitHub and GitLab configurations.
+func validate() error {
+	// Check for mutual exclusivity between GitHub and GitLab
+	githubConfigured := Av.GitHub.Token != "" || Av.GitHub.BaseURL != ""
+	gitlabConfigured := Av.GitLab.Token != "" || Av.GitLab.BaseURL != ""
+
+	if githubConfigured && gitlabConfigured {
+		return errors.New(
+			"cannot configure both GitHub and GitLab simultaneously; " +
+				"please configure only one provider",
+		)
 	}
 
 	return nil
