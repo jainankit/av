@@ -12,15 +12,18 @@ import (
 	"time"
 
 	"emperror.dev/errors"
-	"github.com/aviator-co/av/internal/actions"
-	"github.com/aviator-co/av/internal/config"
-	"github.com/aviator-co/av/internal/gh"
-	"github.com/aviator-co/av/internal/utils/colors"
 	"github.com/fatih/color"
 	"github.com/kr/text"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/mod/semver"
+
+	"github.com/aviator-co/av/internal/actions"
+	"github.com/aviator-co/av/internal/config"
+	"github.com/aviator-co/av/internal/gh"
+	"github.com/aviator-co/av/internal/gitlab"
+	"github.com/aviator-co/av/internal/provider"
+	"github.com/aviator-co/av/internal/utils/colors"
 )
 
 var rootFlags struct {
@@ -182,8 +185,12 @@ func checkCliVersion() {
 var (
 	once             sync.Once
 	lazyGithubClient *gh.Client
+	onceGitLab       sync.Once  
+	lazyGitLabClient *gitlab.Client
 )
 
+// discoverGitHubAPIToken discovers GitHub API token using the token precedence:
+// config → AV_GITHUB_TOKEN → GITHUB_TOKEN → gh CLI
 func discoverGitHubAPIToken(ctx context.Context) string {
 	if config.Av.GitHub.Token != "" {
 		return config.Av.GitHub.Token
@@ -200,6 +207,27 @@ func discoverGitHubAPIToken(ctx context.Context) string {
 	return ""
 }
 
+// discoverGitLabAPIToken discovers GitLab API token using the token precedence:  
+// config → AV_GITLAB_TOKEN → GITLAB_TOKEN → glab CLI
+func discoverGitLabAPIToken(ctx context.Context) string {
+	if config.Av.GitLab.Token != "" {
+		return config.Av.GitLab.Token
+	}
+	if glabCli, err := exec.LookPath("glab"); err == nil {
+		var stdout bytes.Buffer
+		cmd := exec.CommandContext(ctx, glabCli, "auth", "print-access-token")
+		cmd.Stdout = &stdout
+		cmd.Stderr = nil
+		if err := cmd.Run(); err == nil {
+			token := strings.TrimSpace(stdout.String())
+			if token != "" {
+				return token
+			}
+		}
+	}
+	return ""
+}
+
 func getGitHubClient(ctx context.Context) (*gh.Client, error) {
 	token := discoverGitHubAPIToken(ctx)
 	if token == "" {
@@ -210,4 +238,45 @@ func getGitHubClient(ctx context.Context) (*gh.Client, error) {
 		lazyGithubClient, err = gh.NewClient(ctx, token)
 	})
 	return lazyGithubClient, err
+}
+
+func getGitLabClient(ctx context.Context) (*gitlab.Client, error) {
+	token := discoverGitLabAPIToken(ctx)
+	if token == "" {
+		return nil, errNoGitLabToken
+	}
+	var err error
+	onceGitLab.Do(func() {
+		lazyGitLabClient, err = gitlab.NewClient(ctx, token)
+	})
+	return lazyGitLabClient, err
+}
+
+// getProviderClient returns the appropriate client based on the detected provider
+func getProviderClient(
+	ctx context.Context,
+) (interface{}, *provider.Provider, error) {
+	repo, err := getRepo(ctx)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to get repository")
+	}
+	
+	detectedProvider, err := provider.DetectProvider(ctx, repo)
+	if err != nil {
+		return nil, nil, errors.Wrap(err, "failed to detect provider")
+	}
+	
+	switch detectedProvider.Type {
+	case provider.GitHub:
+		client, err := getGitHubClient(ctx)
+		return client, detectedProvider, err
+	case provider.GitLab:
+		client, err := getGitLabClient(ctx)
+		return client, detectedProvider, err
+	default:
+		return nil, detectedProvider, errors.Errorf(
+			"unsupported provider: %s", 
+			detectedProvider.Type,
+		)
+	}
 }

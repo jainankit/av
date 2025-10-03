@@ -11,6 +11,7 @@ import (
 
 var (
 	errNoGitHubToken    = errors.Sentinel("No GitHub token is set (do you need to configure one?).")
+	errNoGitLabToken    = errors.Sentinel("No GitLab token is set (do you need to configure one?).")
 	errParentNotAdopted = errors.Sentinel("Parent not adopted")
 )
 
@@ -22,6 +23,21 @@ const noGitHubToken = `# ERROR: No GitHub Token
 2. Create a Personal Access Token on GitHub and set it in the config. See [av configuration doc](https://docs.aviator.co/aviator-cli/configuration#github-personal-access-token).
 
 We couldn't find the GitHub CLI setup nor a Personal Access Token in the config. Please set up the token and try again.
+`
+
+const noGitLabToken = `# ERROR: No GitLab Token
+
+` + "`av`" + ` needs a GitLab API token to interact with the repository. There are three ways to provide a token:
+
+1. (Easy) Use [GitLab CLI](https://gitlab.com/gitlab-org/cli) to authenticate with GitLab. ` +
+		`Run ` + "`glab auth login`" + ` to authenticate.
+2. Create a Personal Access Token on GitLab and set it in the config. ` +
+		`See [av configuration doc](https://docs.aviator.co/aviator-cli/configuration#gitlab-personal-access-token).
+3. Set the ` + "`AV_GITLAB_TOKEN`" + ` or ` + "`GITLAB_TOKEN`" + ` environment variable ` +
+		`with your GitLab token.
+
+We couldn't find the GitLab CLI setup nor a Personal Access Token in the config. ` +
+		`Please set up the token and try again.
 `
 
 const parentNotAdopted = `# ERROR: Parent branch is not adopted to ` + "`av`" + `
@@ -43,6 +59,8 @@ func renderError(err error) string {
 	var markdownText string
 	if errors.Is(err, errNoGitHubToken) {
 		markdownText = noGitHubToken
+	} else if errors.Is(err, errNoGitLabToken) {
+		markdownText = noGitLabToken
 	} else if errors.Is(err, errParentNotAdopted) {
 		markdownText = parentNotAdopted
 	}

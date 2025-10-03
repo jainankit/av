@@ -6,11 +6,13 @@ import (
 	"os"
 
 	"emperror.dev/errors"
-	"github.com/aviator-co/av/internal/gh"
+	"github.com/spf13/cobra"
 
 	"github.com/aviator-co/av/internal/avgql"
+	"github.com/aviator-co/av/internal/gh"
+	"github.com/aviator-co/av/internal/gitlab"
+	"github.com/aviator-co/av/internal/provider"
 	"github.com/aviator-co/av/internal/utils/colors"
-	"github.com/spf13/cobra"
 )
 
 var authCmd = &cobra.Command{
@@ -22,7 +24,7 @@ var authCmd = &cobra.Command{
 		if err := checkAviatorAuthStatus(cmd.Context()); err != nil {
 			fmt.Fprintln(os.Stderr, colors.Warning(err.Error()))
 		}
-		if err := checkGitHubAuthStatus(cmd.Context()); err != nil {
+		if err := checkProviderAuthStatus(cmd.Context()); err != nil {
 			fmt.Fprintln(os.Stderr, colors.Failure(err.Error()))
 		}
 	},
@@ -73,6 +75,79 @@ func checkGitHubAuthStatus(ctx context.Context) error {
 		"Logged in to GitHub as ", colors.UserInput(viewer.Name),
 		" (", colors.UserInput(viewer.Login), ").\n",
 	)
+	return nil
+}
+
+func checkGitLabAuthStatus(ctx context.Context) error {
+	glClient, err := getGitLabClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	viewer, err := glClient.Viewer(ctx)
+	if err != nil {
+		// GitLab API returns 401 Unauthorized if the token is invalid or
+		// expired.
+		if gitlab.IsHTTPUnauthorized(err) {
+			return errors.New(
+				"You are not logged in to GitLab. Please verify that your API token is correct.",
+			)
+		}
+		return errors.Wrap(err, "Failed to query GitLab")
+	}
+
+	fmt.Fprint(os.Stderr,
+		"Logged in to GitLab as ", colors.UserInput(viewer.Name),
+		" (", colors.UserInput(viewer.Username), ").\n",
+	)
+	return nil
+}
+
+// checkProviderAuthStatus checks authentication status for the detected provider
+func checkProviderAuthStatus(ctx context.Context) error {
+	repo, err := getRepo(ctx)
+	if err != nil {
+		// If we can't detect the repo, fall back to checking both providers
+		return checkBothProvidersAuthStatus(ctx)
+	}
+	
+	detectedProvider, err := provider.DetectProvider(ctx, repo)
+	if err != nil {
+		// If we can't detect the provider, fall back to checking both
+		return checkBothProvidersAuthStatus(ctx)
+	}
+	
+	switch detectedProvider.Type {
+	case provider.GitHub:
+		return checkGitHubAuthStatus(ctx)
+	case provider.GitLab:
+		return checkGitLabAuthStatus(ctx)
+	default:
+		return checkBothProvidersAuthStatus(ctx)
+	}
+}
+
+// checkBothProvidersAuthStatus checks both GitHub and GitLab when provider is ambiguous
+func checkBothProvidersAuthStatus(ctx context.Context) error {
+	githubErr := checkGitHubAuthStatus(ctx)
+	gitlabErr := checkGitLabAuthStatus(ctx)
+	
+	// If both fail, return the more relevant error
+	if githubErr != nil && gitlabErr != nil {
+		// Check if either token is configured to provide better error message
+		if discoverGitHubAPIToken(ctx) != "" {
+			return githubErr
+		}
+		if discoverGitLabAPIToken(ctx) != "" {
+			return gitlabErr
+		}
+		// If neither token is found, suggest configuring one
+		return errors.New(
+			"No GitHub or GitLab token found. Please configure authentication for your provider.",
+		)
+	}
+	
+	// At least one succeeded, so return nil
 	return nil
 }
 
