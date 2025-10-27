@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"emperror.dev/errors"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/meta"
 	"github.com/aviator-co/av/internal/utils/cleanup"
 	"github.com/aviator-co/av/internal/utils/colors"

@@ -15,7 +15,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/aviator-co/av/internal/config"
 	"github.com/aviator-co/av/internal/editor"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/git"
 	"github.com/aviator-co/av/internal/meta"
 	"github.com/aviator-co/av/internal/utils/browser"

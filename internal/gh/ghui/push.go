@@ -8,7 +8,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/aviator-co/av/internal/actions"
 	avconfig "github.com/aviator-co/av/internal/config"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/git"
 	"github.com/aviator-co/av/internal/meta"
 	"github.com/aviator-co/av/internal/utils/colors"
@@ -128,7 +128,10 @@ func (vm *GitHubPushModel) Update(msg tea.Msg) (*GitHubPushModel, tea.Cmd) {
 				return vm, vm.runUpdate
 			}
 			vm.askingForConfirmation = true
-			vm.pushPrompt = uiutils.NewPromptModel("Are you OK with pushing these branches to remote?", []string{continuePush, abortPush})
+			vm.pushPrompt = uiutils.NewPromptModel(
+				"Are you OK with pushing these branches to remote?",
+				[]string{continuePush, abortPush},
+			)
 			return vm, vm.pushPrompt.Init()
 		}
 		if msg.gitPushDone {
@@ -315,13 +318,19 @@ func (vm *GitHubPushModel) runGitPush() error {
 	}
 
 	for _, branch := range vm.pushCandidates {
-		if err := vm.repo.BranchSetConfig(ctx, branch.branch.Short(), "av-pushed-remote", vm.repo.GetRemoteName()); err != nil {
+		if err := vm.repo.BranchSetConfig(
+			ctx, branch.branch.Short(), "av-pushed-remote", vm.repo.GetRemoteName(),
+		); err != nil {
 			return err
 		}
-		if err := vm.repo.BranchSetConfig(ctx, branch.branch.Short(), "av-pushed-ref", branch.branch.String()); err != nil {
+		if err := vm.repo.BranchSetConfig(
+			ctx, branch.branch.Short(), "av-pushed-ref", branch.branch.String(),
+		); err != nil {
 			return err
 		}
-		if err := vm.repo.BranchSetConfig(ctx, branch.branch.Short(), "av-pushed-commit", branch.localCommit.Hash.String()); err != nil {
+		if err := vm.repo.BranchSetConfig(
+			ctx, branch.branch.Short(), "av-pushed-commit", branch.localCommit.Hash.String(),
+		); err != nil {
 			return err
 		}
 	}

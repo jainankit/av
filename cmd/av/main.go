@@ -14,7 +14,7 @@ import (
 	"emperror.dev/errors"
 	"github.com/aviator-co/av/internal/actions"
 	"github.com/aviator-co/av/internal/config"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/utils/colors"
 	"github.com/fatih/color"
 	"github.com/kr/text"

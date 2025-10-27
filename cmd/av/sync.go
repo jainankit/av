@@ -7,7 +7,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/aviator-co/av/internal/actions"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/gh/ghui"
 	"github.com/aviator-co/av/internal/git"
 	"github.com/aviator-co/av/internal/git/gitui"

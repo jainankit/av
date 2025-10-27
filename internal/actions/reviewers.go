@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"emperror.dev/errors"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/utils/colors"
 	"github.com/shurcooL/githubv4"
 )

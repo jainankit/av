@@ -6,7 +6,7 @@ import (
 
 	"emperror.dev/errors"
 	"github.com/aviator-co/av/internal/actions"
-	"github.com/aviator-co/av/internal/gh"
+	gh "github.com/aviator-co/av/internal/provider/github"
 	"github.com/aviator-co/av/internal/git"
 	"github.com/aviator-co/av/internal/meta"
 	"github.com/aviator-co/av/internal/utils/colors"
@@ -107,7 +107,10 @@ func (vm *GitHubFetchModel) View() string {
 		sb.WriteString(colors.ProgressStyle.Render(vm.spinner.View() + "Running git fetch..."))
 		showTree = true
 	} else if vm.runningGitHubAPIBranch >= 0 && vm.runningGitHubAPIBranch < len(vm.targetBranches) {
-		sb.WriteString(colors.ProgressStyle.Render(vm.spinner.View() + "Querying GitHub API for " + vm.targetBranches[vm.runningGitHubAPIBranch].Short() + "..."))
+		sb.WriteString(colors.ProgressStyle.Render(
+			vm.spinner.View() + "Querying GitHub API for " +
+				vm.targetBranches[vm.runningGitHubAPIBranch].Short() + "...",
+		))
 		showTree = true
 	} else if vm.runningCheckCommitHistory {
 		sb.WriteString(colors.ProgressStyle.Render(vm.spinner.View() + "Checking commit history for merge commits..."))
@@ -161,7 +164,9 @@ func (vm *GitHubFetchModel) View() string {
 					if pendingBranches[bn] {
 						return colors.ProgressStyle.Render(branchName + suffix)
 					}
-					if vm.runningGitHubAPIBranch > 0 && vm.runningGitHubAPIBranch < len(vm.targetBranches) && vm.targetBranches[vm.runningGitHubAPIBranch] == bn {
+					if vm.runningGitHubAPIBranch > 0 &&
+						vm.runningGitHubAPIBranch < len(vm.targetBranches) &&
+						vm.targetBranches[vm.runningGitHubAPIBranch] == bn {
 						return colors.ProgressStyle.Render(vm.spinner.View() + branchName + suffix)
 					}
 					return branchName
